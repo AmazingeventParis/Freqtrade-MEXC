@@ -65,6 +65,7 @@
     "bot_name": "CryptoSignals-FT",
     "initial_state": "running",
     "force_entry_enable": true,
+    "db_url": "sqlite:///freqtrade/user_data/db/tradesv3.dry_run.sqlite",
     "internals": {
         "process_throttle_secs": 5
     }

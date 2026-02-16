@@ -11,6 +11,9 @@ COPY config.json /freqtrade/config.json
 COPY start.sh /freqtrade/start.sh
 RUN sed -i 's/\r$//' /freqtrade/start.sh && chmod +x /freqtrade/start.sh
 
+# Creer le dossier db persistant (monte en volume Docker)
+RUN mkdir -p /freqtrade/user_data/db && chown -R ftuser:ftuser /freqtrade/user_data/db
+
 # Installer FreqUI (dashboard web)
 RUN mkdir -p /freqtrade/freqtrade/rpc/api_server/ui/installed && \
     curl -L https://github.com/freqtrade/frequi/releases/latest/download/frequi.zip -o /tmp/frequi.zip && \
