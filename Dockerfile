@@ -11,6 +11,9 @@ COPY config.json /freqtrade/config.json
 COPY start.sh /freqtrade/start.sh
 RUN sed -i 's/\r$//' /freqtrade/start.sh && chmod +x /freqtrade/start.sh
 
+# Installer FreqUI (dashboard web)
+RUN freqtrade install-ui
+
 # Remettre l'utilisateur ftuser
 USER ftuser
 

@@ -57,7 +57,7 @@
         "listen_ip_address": "0.0.0.0",
         "listen_port": 8080,
         "verbosity": "error",
-        "enable_openapi": false,
+        "enable_openapi": true,
         "jwt_secret_key": "x7K9mP2vQ8nR4jL6wE3sA5dF1hG0tY",
         "CORS_origins": ["*"],
         "username": "admin",
