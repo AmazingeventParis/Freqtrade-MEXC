@@ -11,10 +11,10 @@ COPY config.json /freqtrade/config.json
 COPY start.sh /freqtrade/start.sh
 RUN sed -i 's/\r$//' /freqtrade/start.sh && chmod +x /freqtrade/start.sh
 
-# Installer FreqUI (dashboard web) - telechargement manuel
+# Installer FreqUI (dashboard web)
 RUN mkdir -p /freqtrade/freqtrade/rpc/api_server/ui/installed && \
     curl -L https://github.com/freqtrade/frequi/releases/latest/download/frequi.zip -o /tmp/frequi.zip && \
-    unzip -o /tmp/frequi.zip -d /freqtrade/freqtrade/rpc/api_server/ui/installed/ && \
+    python3 -c "import zipfile; zipfile.ZipFile('/tmp/frequi.zip').extractall('/freqtrade/freqtrade/rpc/api_server/ui/installed/')" && \
     rm /tmp/frequi.zip
 
 # Remettre l'utilisateur ftuser
