@@ -3,9 +3,10 @@ CombinedStrategy - Strategie multi-indicateurs pour Freqtrade
 EMA Cross + RSI + Bollinger Bands + Volume confirmation
 Optimisee pour le scalping/swing court sur futures crypto
 """
-import talib.abstract as ta
-from freqtrade.strategy import IStrategy, DecimalParameter, IntParameter
+import freqtrade.vendor.qtpylib.indicators as qtpylib
+from freqtrade.strategy import IStrategy, IntParameter
 from pandas import DataFrame
+import talib
 
 
 class CombinedStrategy(IStrategy):
@@ -24,17 +25,17 @@ class CombinedStrategy(IStrategy):
 
     # ROI (Return On Investment) - prendre les profits
     minimal_roi = {
-        "0": 0.03,      # 3% immediatement
-        "30": 0.02,      # 2% apres 30 min
-        "60": 0.01,      # 1% apres 1h
-        "120": 0.005,    # 0.5% apres 2h
+        "0": 0.03,
+        "30": 0.02,
+        "60": 0.01,
+        "120": 0.005,
     }
 
     # Stop loss
-    stoploss = -0.02  # -2%
+    stoploss = -0.02
     trailing_stop = True
-    trailing_stop_positive = 0.01    # Active trailing a +1%
-    trailing_stop_positive_offset = 0.015  # Trigger a +1.5%
+    trailing_stop_positive = 0.01
+    trailing_stop_positive_offset = 0.015
     trailing_only_offset_is_reached = True
 
     # Nombre de bougies necessaires
@@ -46,36 +47,26 @@ class CombinedStrategy(IStrategy):
     # Parametres optimisables
     buy_rsi = IntParameter(20, 40, default=30, space="buy")
     sell_rsi = IntParameter(60, 80, default=70, space="sell")
-    ema_fast = IntParameter(5, 15, default=9, space="buy")
-    ema_slow = IntParameter(15, 30, default=21, space="buy")
-    bb_period = IntParameter(15, 25, default=20, space="buy")
 
     def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         # EMAs
-        dataframe["ema_fast"] = ta.EMA(dataframe, timeperiod=self.ema_fast.value)
-        dataframe["ema_slow"] = ta.EMA(dataframe, timeperiod=self.ema_slow.value)
+        dataframe["ema9"] = talib.EMA(dataframe["close"], timeperiod=9)
+        dataframe["ema21"] = talib.EMA(dataframe["close"], timeperiod=21)
 
         # RSI
-        dataframe["rsi"] = ta.RSI(dataframe, timeperiod=14)
+        dataframe["rsi"] = talib.RSI(dataframe["close"], timeperiod=14)
 
         # Bollinger Bands
-        bollinger = ta.BBANDS(dataframe, timeperiod=self.bb_period.value, nbdevup=2.0, nbdevdn=2.0)
-        dataframe["bb_upper"] = bollinger["upperband"]
-        dataframe["bb_middle"] = bollinger["middleband"]
-        dataframe["bb_lower"] = bollinger["lowerband"]
-        dataframe["bb_width"] = (dataframe["bb_upper"] - dataframe["bb_lower"]) / dataframe["bb_middle"]
+        upper, middle, lower = talib.BBANDS(dataframe["close"], timeperiod=20, nbdevup=2.0, nbdevdn=2.0)
+        dataframe["bb_upper"] = upper
+        dataframe["bb_middle"] = middle
+        dataframe["bb_lower"] = lower
 
         # Volume moyen
         dataframe["volume_mean"] = dataframe["volume"].rolling(window=20).mean()
-        dataframe["volume_spike"] = dataframe["volume"] > (dataframe["volume_mean"] * 1.5)
 
-        # MACD
-        macd = ta.MACD(dataframe, fastperiod=12, slowperiod=26, signalperiod=9)
-        dataframe["macd"] = macd["macd"]
-        dataframe["macdsignal"] = macd["macdsignal"]
-
-        # ADX (force de tendance)
-        dataframe["adx"] = ta.ADX(dataframe, timeperiod=14)
+        # ADX
+        dataframe["adx"] = talib.ADX(dataframe["high"], dataframe["low"], dataframe["close"], timeperiod=14)
 
         return dataframe
 
@@ -83,17 +74,11 @@ class CombinedStrategy(IStrategy):
         # === LONG ===
         dataframe.loc[
             (
-                # EMA fast croise au-dessus de EMA slow
-                (dataframe["ema_fast"] > dataframe["ema_slow"])
-                & (dataframe["ema_fast"].shift(1) <= dataframe["ema_slow"].shift(1))
-                # RSI pas en surachat
+                qtpylib.crossed_above(dataframe["ema9"], dataframe["ema21"])
                 & (dataframe["rsi"] < self.sell_rsi.value)
                 & (dataframe["rsi"] > self.buy_rsi.value)
-                # Prix au-dessus de la bande moyenne BB
                 & (dataframe["close"] > dataframe["bb_middle"])
-                # ADX suffisant (tendance)
                 & (dataframe["adx"] > 20)
-                # Volume
                 & (dataframe["volume"] > 0)
             ),
             "enter_long",
@@ -102,17 +87,11 @@ class CombinedStrategy(IStrategy):
         # === SHORT ===
         dataframe.loc[
             (
-                # EMA fast croise en-dessous de EMA slow
-                (dataframe["ema_fast"] < dataframe["ema_slow"])
-                & (dataframe["ema_fast"].shift(1) >= dataframe["ema_slow"].shift(1))
-                # RSI pas en survente
+                qtpylib.crossed_below(dataframe["ema9"], dataframe["ema21"])
                 & (dataframe["rsi"] > self.buy_rsi.value)
                 & (dataframe["rsi"] < self.sell_rsi.value)
-                # Prix en-dessous de la bande moyenne BB
                 & (dataframe["close"] < dataframe["bb_middle"])
-                # ADX suffisant
                 & (dataframe["adx"] > 20)
-                # Volume
                 & (dataframe["volume"] > 0)
             ),
             "enter_short",
@@ -124,11 +103,8 @@ class CombinedStrategy(IStrategy):
         # === Exit LONG ===
         dataframe.loc[
             (
-                # EMA cross inverse
-                (dataframe["ema_fast"] < dataframe["ema_slow"])
-                # OU RSI en surachat
+                qtpylib.crossed_below(dataframe["ema9"], dataframe["ema21"])
                 | (dataframe["rsi"] > 75)
-                # OU prix touche bande haute BB
                 | (dataframe["close"] > dataframe["bb_upper"])
             ),
             "exit_long",
@@ -137,11 +113,8 @@ class CombinedStrategy(IStrategy):
         # === Exit SHORT ===
         dataframe.loc[
             (
-                # EMA cross inverse
-                (dataframe["ema_fast"] > dataframe["ema_slow"])
-                # OU RSI en survente
+                qtpylib.crossed_above(dataframe["ema9"], dataframe["ema21"])
                 | (dataframe["rsi"] < 25)
-                # OU prix touche bande basse BB
                 | (dataframe["close"] < dataframe["bb_lower"])
             ),
             "exit_short",
