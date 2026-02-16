@@ -64,7 +64,7 @@
     },
     "bot_name": "CryptoSignals-FT",
     "initial_state": "running",
-    "force_entry_enable": false,
+    "force_entry_enable": true,
     "internals": {
         "process_throttle_secs": 5
     }

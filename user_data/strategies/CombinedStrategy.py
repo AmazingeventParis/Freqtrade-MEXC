@@ -90,31 +90,29 @@ class CombinedStrategy(IStrategy):
 
     def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         # === LONG ===
-        # EMA9 croise au-dessus de EMA21 + MACD positif + RSI neutre + volume spike
+        # EMA9 croise au-dessus de EMA21 + MACD positif + RSI neutre
         dataframe.loc[
             (
                 qtpylib.crossed_above(dataframe["ema9"], dataframe["ema21"])
                 & (dataframe["macd_hist"] > 0)
                 & (dataframe["rsi"] > self.buy_rsi.value)
                 & (dataframe["rsi"] < self.sell_rsi.value)
-                & (dataframe["close"] > dataframe["bb_middle"])
-                & (dataframe["adx"] > 20)
-                & (dataframe["volume"] > dataframe["volume_mean"] * self.volume_factor.value)
+                & (dataframe["adx"] > 15)
+                & (dataframe["volume"] > 0)
             ),
             "enter_long",
         ] = 1
 
         # === SHORT ===
-        # EMA9 croise en-dessous de EMA21 + MACD négatif + RSI neutre + volume spike
+        # EMA9 croise en-dessous de EMA21 + MACD négatif + RSI neutre
         dataframe.loc[
             (
                 qtpylib.crossed_below(dataframe["ema9"], dataframe["ema21"])
                 & (dataframe["macd_hist"] < 0)
                 & (dataframe["rsi"] > self.buy_rsi.value)
                 & (dataframe["rsi"] < self.sell_rsi.value)
-                & (dataframe["close"] < dataframe["bb_middle"])
-                & (dataframe["adx"] > 20)
-                & (dataframe["volume"] > dataframe["volume_mean"] * self.volume_factor.value)
+                & (dataframe["adx"] > 15)
+                & (dataframe["volume"] > 0)
             ),
             "enter_short",
         ] = 1
