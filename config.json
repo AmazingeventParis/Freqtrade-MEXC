@@ -52,9 +52,6 @@
             "method": "StaticPairList"
         }
     ],
-    "freqai": {
-        "enabled": false
-    },
     "api_server": {
         "enabled": true,
         "listen_ip_address": "0.0.0.0",
