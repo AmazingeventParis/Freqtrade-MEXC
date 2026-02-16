@@ -31,7 +31,7 @@
         "order_book_top": 1
     },
     "exchange": {
-        "name": "mexc",
+        "name": "binance",
         "key": "",
         "secret": "",
         "ccxt_config": {},
@@ -43,8 +43,6 @@
             "DOGE/USDT:USDT",
             "PEPE/USDT:USDT",
             "RUNE/USDT:USDT",
-            "KAITO/USDT:USDT",
-            "VIRTUAL/USDT:USDT",
             "TRUMP/USDT:USDT"
         ],
         "pair_blacklist": []

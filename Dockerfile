@@ -4,5 +4,6 @@ FROM freqtradeorg/freqtrade:stable
 COPY user_data /freqtrade/user_data
 COPY config.json /freqtrade/config.json
 
-# Lancer en dry-run (paper trading)
-CMD ["trade", "--config", "/freqtrade/config.json", "--strategy", "CombinedStrategy"]
+# D'abord tester que ca demarre, logger les erreurs
+ENTRYPOINT ["freqtrade"]
+CMD ["trade", "--config", "/freqtrade/config.json", "--strategy", "CombinedStrategy", "--db-url", "sqlite:////freqtrade/user_data/tradesv3.sqlite"]
